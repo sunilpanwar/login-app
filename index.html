@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <h1>Login</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn-login">Login</button>
+                <div id="message" class="message"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Replace this URL with your Google Apps Script Web App URL
+        // Make sure to deploy as "Execute as: Me" and "Who has access: Anyone"
+
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuu9JDbxV6s64irA5ReWhxqdRn38aW6UUeRzA8mMMvvYzhJ2Rs3LIc8rZhPW2s8l5T/exec';
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+            
+            // Show loading state
+            messageDiv.textContent = 'Validating...';
+            messageDiv.className = 'message info';
+            
+            try {
+                // Using GET request with URL parameters to avoid CORS issues
+                const url = `${SCRIPT_URL}?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    messageDiv.textContent = 'Login successful! Redirecting...';
+                    messageDiv.className = 'message success';
+                    
+                    // Store user info in sessionStorage
+                    sessionStorage.setItem('loggedIn', 'true');
+                    sessionStorage.setItem('username', username);
+                    
+                    // Redirect to landing page
+                    setTimeout(() => {
+                        window.location.href = 'landing.html';
+                    }, 1000);
+                } else {
+                    messageDiv.textContent = data.message || 'Invalid credentials';
+                    messageDiv.className = 'message error';
+                }
+                
+            } catch (error) {
+                messageDiv.textContent = 'Error connecting to server. Please check your connection.';
+                messageDiv.className = 'message error';
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

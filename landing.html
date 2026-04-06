@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="landing-box">
+            <div class="header">
+                <h1>Welcome, <span id="username"></span>!</h1>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+            <div class="content">
+                <h2>Dashboard</h2>
+                <p>You have successfully logged in to the application.</p>
+                <div class="info-card">
+                    <h3>Getting Started</h3>
+                    <p>This is your landing page. You can enhance this page with:</p>
+                    <ul>
+                        <li>User profile information</li>
+                        <li>Dashboard widgets</li>
+                        <li>Navigation to other pages</li>
+                        <li>Data visualization</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        window.addEventListener('DOMContentLoaded', function() {
+            const loggedIn = sessionStorage.getItem('loggedIn');
+            const username = sessionStorage.getItem('username');
+            
+            if (!loggedIn || loggedIn !== 'true') {
+                // Redirect to login page if not logged in
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Display username
+            document.getElementById('username').textContent = username || 'User';
+        });
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            // Clear session storage
+            sessionStorage.removeItem('loggedIn');
+            sessionStorage.removeItem('username');
+            
+            // Redirect to login page
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>
