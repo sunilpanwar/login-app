@@ -17,6 +17,14 @@
 // Main function to handle GET requests (to avoid CORS issues)
 function doGet(e) {
   try {
+    const action = e.parameter.action;
+    
+    // Handle different actions
+    if (action === 'getAllUsers') {
+      return getAllUsers();
+    }
+    
+    // Default: Login validation
     const username = e.parameter.username;
     const password = e.parameter.password;
     
@@ -146,6 +154,67 @@ function testValidation() {
   
   const response = doGet(mockEvent);
   Logger.log('Full response: ' + response.getContent());
+}
+
+/**
+ * Get all users from the spreadsheet (without passwords for security)
+ * @return {ContentService.TextOutput} - JSON response with user list
+ */
+function getAllUsers() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
+    
+    if (!sheet) {
+      Logger.log('Sheet "Users" not found');
+      return createResponseWithData(false, 'Users sheet not found', []);
+    }
+    
+    // Get all data from the sheet
+    const data = sheet.getDataRange().getValues();
+    
+    // Skip header row and extract usernames only (not passwords for security)
+    const users = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const username = row[0] ? row[0].toString().trim() : '';
+      
+      if (username) {
+        users.push({
+          id: i,
+          username: username,
+          // You can add more fields here if your spreadsheet has them
+          // For example: email, role, createdDate, etc.
+        });
+      }
+    }
+    
+    Logger.log('Retrieved ' + users.length + ' users');
+    return createResponseWithData(true, 'Users retrieved successfully', users);
+    
+  } catch (error) {
+    Logger.log('Error in getAllUsers: ' + error.toString());
+    return createResponseWithData(false, 'Error retrieving users: ' + error.toString(), []);
+  }
+}
+
+/**
+ * Creates a JSON response with data payload
+ * @param {boolean} success - Whether the operation was successful
+ * @param {string} message - The message to return
+ * @param {Array} data - The data to return
+ * @return {ContentService.TextOutput} - The formatted response
+ */
+function createResponseWithData(success, message, data) {
+  const response = {
+    success: success,
+    message: message,
+    data: data,
+    timestamp: new Date().toISOString()
+  };
+  
+  return ContentService
+    .createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**

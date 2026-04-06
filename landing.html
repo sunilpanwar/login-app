@@ -16,6 +16,21 @@
             <div class="content">
                 <h2>Dashboard</h2>
                 <p>You have successfully logged in to the application.</p>
+                
+                <!-- User Management Section -->
+                <div class="user-management">
+                    <div class="section-header">
+                        <h3>User Management</h3>
+                        <button id="loadUsersBtn" class="btn-primary">Load All Users</button>
+                    </div>
+                    <div id="userListContainer" class="user-list-container" style="display: none;">
+                        <div id="loadingMessage" class="loading-message" style="display: none;">
+                            Loading users...
+                        </div>
+                        <div id="userList" class="user-list"></div>
+                    </div>
+                </div>
+                
                 <div class="info-card">
                     <h3>Getting Started</h3>
                     <p>This is your landing page. You can enhance this page with:</p>
@@ -31,6 +46,9 @@
     </div>
 
     <script>
+        // Replace this URL with your Google Apps Script Web App URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuu9JDbxV6s64irA5ReWhxqdRn38aW6UUeRzA8mMMvvYzhJ2Rs3LIc8rZhPW2s8l5T/exec';
+
         // Check if user is logged in
         window.addEventListener('DOMContentLoaded', function() {
             const loggedIn = sessionStorage.getItem('loggedIn');
@@ -54,6 +72,77 @@
             
             // Redirect to login page
             window.location.href = 'index.html';
+        });
+
+        // Load all users functionality
+        document.getElementById('loadUsersBtn').addEventListener('click', async function() {
+            const userListContainer = document.getElementById('userListContainer');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const userList = document.getElementById('userList');
+            const loadUsersBtn = document.getElementById('loadUsersBtn');
+            
+            // Show container and loading message
+            userListContainer.style.display = 'block';
+            loadingMessage.style.display = 'block';
+            userList.innerHTML = '';
+            loadUsersBtn.disabled = true;
+            loadUsersBtn.textContent = 'Loading...';
+            
+            try {
+                // Fetch all users from Google Apps Script
+                const url = `${SCRIPT_URL}?action=getAllUsers`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                
+                const data = await response.json();
+                
+                // Hide loading message
+                loadingMessage.style.display = 'none';
+                loadUsersBtn.disabled = false;
+                loadUsersBtn.textContent = 'Refresh Users';
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    // Display users in a table
+                    let tableHTML = `
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Username</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.data.forEach((user, index) => {
+                        tableHTML += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${user.username}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableHTML += `
+                            </tbody>
+                        </table>
+                        <p class="user-count">Total Users: ${data.data.length}</p>
+                    `;
+                    
+                    userList.innerHTML = tableHTML;
+                } else {
+                    userList.innerHTML = '<p class="no-users">No users found or error loading users.</p>';
+                }
+                
+            } catch (error) {
+                loadingMessage.style.display = 'none';
+                loadUsersBtn.disabled = false;
+                loadUsersBtn.textContent = 'Load All Users';
+                userList.innerHTML = `<p class="error-message">Error loading users: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
         });
     </script>
 </body>
