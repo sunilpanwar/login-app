@@ -9,7 +9,7 @@
 
 const CONFIG = {
     // Replace this with your actual Google Apps Script Web App URL
-    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzO6wqGHUYUpKLbGnr7mcP1nHNR8YZVd3kjMtv2zPWWAFTgCDrJNFRpkUHXWwdJH6mg/exec',
+    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzAN6lmKxwkjnGSIhIjU6Cyn5hNW6NRtvtz_tVZ-YRxlH9xV8Amy6HYKEyruQC9CTiS/exec',
     
     // You can add more configuration options here as needed
     // For example:
