@@ -1,17 +1,18 @@
 /**
- * Google Apps Script for Login Validation
- * 
+ * Google Apps Script for Login Validation and Employee Management
+ *
  * SETUP INSTRUCTIONS:
  * 1. Create a new Google Spreadsheet
- * 2. Name the first sheet "Users"
- * 3. Add headers in row 1: username | password
- * 4. Add user credentials in subsequent rows
- * 5. Go to Extensions > Apps Script
- * 6. Copy this code into the script editor
- * 7. Deploy as Web App:
+ * 2. Create two sheets:
+ *    - Sheet 1: "Users" with headers: username | password
+ *    - Sheet 2: "Employees" with headers: name | phone | address | salary | joinDate
+ * 3. Add user credentials in the Users sheet
+ * 4. Go to Extensions > Apps Script
+ * 5. Copy this code into the script editor
+ * 6. Deploy as Web App:
  *    - Execute as: Me
  *    - Who has access: Anyone
- * 8. Copy the Web App URL and paste it in index.html (SCRIPT_URL variable)
+ * 7. Copy the Web App URL and paste it in config.js (SCRIPT_URL)
  */
 
 // Main function to handle GET requests (to avoid CORS issues)
@@ -28,6 +29,19 @@ function doGet(e) {
       const username = e.parameter.username;
       const password = e.parameter.password;
       return addUserViaAPI(username, password);
+    }
+    
+    if (action === 'getAllEmployees') {
+      return getAllEmployees();
+    }
+    
+    if (action === 'addEmployee') {
+      const name = e.parameter.name;
+      const phone = e.parameter.phone;
+      const address = e.parameter.address;
+      const salary = e.parameter.salary;
+      const joinDate = e.parameter.joinDate;
+      return addEmployeeViaAPI(name, phone, address, salary, joinDate);
     }
     
     // Default: Login validation
@@ -306,4 +320,123 @@ function addUser(username, password) {
     Logger.log('Error in addUser: ' + error.toString());
     return false;
   }
+}
+
+/**
+ * Get all employees from the spreadsheet
+ * @return {ContentService.TextOutput} - JSON response with employee list
+ */
+function getAllEmployees() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Employees');
+    
+    if (!sheet) {
+      Logger.log('Sheet "Employees" not found');
+      return createResponseWithData(false, 'Employees sheet not found. Please create a sheet named "Employees" with headers: name | phone | address | salary | joinDate', []);
+    }
+    
+    // Get all data from the sheet
+    const data = sheet.getDataRange().getValues();
+    
+    // Skip header row and extract employee data
+    const employees = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const name = row[0] ? row[0].toString().trim() : '';
+      
+      if (name) {
+        employees.push({
+          id: i,
+          name: name,
+          phone: row[1] ? row[1].toString().trim() : '',
+          address: row[2] ? row[2].toString().trim() : '',
+          salary: row[3] ? row[3].toString() : '0',
+          joinDate: row[4] ? row[4].toString() : ''
+        });
+      }
+    }
+    
+    Logger.log('Retrieved ' + employees.length + ' employees');
+    return createResponseWithData(true, 'Employees retrieved successfully', employees);
+    
+  } catch (error) {
+    Logger.log('Error in getAllEmployees: ' + error.toString());
+    return createResponseWithData(false, 'Error retrieving employees: ' + error.toString(), []);
+  }
+}
+
+/**
+ * API endpoint to add a new employee
+ * @param {string} name - Employee name
+ * @param {string} phone - Employee phone number
+ * @param {string} address - Employee address
+ * @param {string} salary - Employee salary
+ * @param {string} joinDate - Employee join date
+ * @return {ContentService.TextOutput} - JSON response
+ */
+function addEmployeeViaAPI(name, phone, address, salary, joinDate) {
+  try {
+    // Validate input
+    if (!name || !phone || !address || !salary) {
+      return createResponse(false, 'All fields (name, phone, address, salary) are required');
+    }
+    
+    // Validate phone number length
+    if (phone.length < 10 || phone.length > 15) {
+      return createResponse(false, 'Phone number must be between 10-15 digits');
+    }
+    
+    // Validate salary
+    const salaryNum = parseFloat(salary);
+    if (isNaN(salaryNum) || salaryNum < 0) {
+      return createResponse(false, 'Salary must be a valid positive number');
+    }
+    
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Employees');
+    
+    if (!sheet) {
+      Logger.log('Sheet "Employees" not found');
+      return createResponse(false, 'Employees sheet not found. Please create a sheet named "Employees"');
+    }
+    
+    // Set default join date if not provided
+    const finalJoinDate = joinDate || new Date().toISOString().split('T')[0];
+    
+    // Add new employee
+    sheet.appendRow([name.trim(), phone.trim(), address.trim(), salaryNum, finalJoinDate]);
+    Logger.log('Employee added successfully: ' + name);
+    return createResponse(true, 'Employee added successfully!');
+    
+  } catch (error) {
+    Logger.log('Error in addEmployeeViaAPI: ' + error.toString());
+    return createResponse(false, 'Error adding employee: ' + error.toString());
+  }
+}
+
+/**
+ * Test function for employee operations
+ * Run this function from the Apps Script editor to test
+ */
+function testEmployeeOperations() {
+  // Test adding an employee
+  const testEmployee = {
+    name: 'John Doe',
+    phone: '1234567890',
+    address: '123 Main St, City, Country',
+    salary: '50000',
+    joinDate: '2024-01-01'
+  };
+  
+  const addResult = addEmployeeViaAPI(
+    testEmployee.name,
+    testEmployee.phone,
+    testEmployee.address,
+    testEmployee.salary,
+    testEmployee.joinDate
+  );
+  Logger.log('Add employee result: ' + addResult.getContent());
+  
+  // Test getting all employees
+  const getAllResult = getAllEmployees();
+  Logger.log('Get all employees result: ' + getAllResult.getContent());
 }

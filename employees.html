@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="employee-box">
+            <div class="page-header">
+                <h1>Employee Management</h1>
+                <a href="landing.html" class="btn-back">← Back to Dashboard</a>
+            </div>
+            
+            <form id="employeeForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="employeeName">Full Name *</label>
+                        <input type="text" id="employeeName" name="employeeName" required 
+                               placeholder="Enter full name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="employeePhone">Phone Number *</label>
+                        <input type="tel" id="employeePhone" name="employeePhone" required 
+                               placeholder="Enter phone number" pattern="[0-9]{10,15}">
+                        <small class="form-hint">10-15 digits</small>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="employeeAddress">Address *</label>
+                    <textarea id="employeeAddress" name="employeeAddress" required 
+                              placeholder="Enter complete address" rows="3"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="employeeSalary">Salary *</label>
+                        <input type="number" id="employeeSalary" name="employeeSalary" required 
+                               placeholder="Enter salary" min="0" step="0.01">
+                        <small class="form-hint">Enter amount in your currency</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="employeeJoinDate">Join Date</label>
+                        <input type="date" id="employeeJoinDate" name="employeeJoinDate">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-employee">Add Employee</button>
+                <div id="message" class="message"></div>
+            </form>
+            
+            <!-- Employee List Section -->
+            <div class="employee-list-section">
+                <div class="section-header">
+                    <h2>Employee List</h2>
+                    <button id="refreshEmployeesBtn" class="btn-secondary">Refresh List</button>
+                </div>
+                
+                <div id="employeeListContainer" class="employee-list-container">
+                    <div id="loadingMessage" class="loading-message" style="display: none;">
+                        Loading employees...
+                    </div>
+                    <div id="employeeList" class="employee-list">
+                        <p class="info-text">Click "Refresh List" to view all employees</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verify CONFIG is loaded and get SCRIPT_URL
+        if (typeof CONFIG === 'undefined' || !CONFIG.SCRIPT_URL) {
+            alert('Configuration error: Please ensure config.js is properly loaded and SCRIPT_URL is set.');
+            throw new Error('CONFIG not loaded');
+        }
+        const SCRIPT_URL = CONFIG.SCRIPT_URL;
+
+        // Check if user is logged in
+        window.addEventListener('DOMContentLoaded', function() {
+            const loggedIn = sessionStorage.getItem('loggedIn');
+            
+            if (!loggedIn || loggedIn !== 'true') {
+                // Redirect to login page if not logged in
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Auto-load employees on page load
+            loadEmployees();
+        });
+
+        // Employee form submission
+        document.getElementById('employeeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const employeeName = document.getElementById('employeeName').value.trim();
+            const employeePhone = document.getElementById('employeePhone').value.trim();
+            const employeeAddress = document.getElementById('employeeAddress').value.trim();
+            const employeeSalary = document.getElementById('employeeSalary').value;
+            const employeeJoinDate = document.getElementById('employeeJoinDate').value || new Date().toISOString().split('T')[0];
+            const messageDiv = document.getElementById('message');
+            
+            // Validate phone number
+            if (employeePhone.length < 10 || employeePhone.length > 15) {
+                messageDiv.textContent = 'Phone number must be between 10-15 digits!';
+                messageDiv.className = 'message error';
+                return;
+            }
+            
+            // Validate salary
+            if (parseFloat(employeeSalary) < 0) {
+                messageDiv.textContent = 'Salary cannot be negative!';
+                messageDiv.className = 'message error';
+                return;
+            }
+            
+            // Show loading state
+            messageDiv.textContent = 'Adding employee...';
+            messageDiv.className = 'message info';
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Adding...';
+            
+            try {
+                // Send employee data to Google Apps Script
+                const url = `${SCRIPT_URL}?action=addEmployee&name=${encodeURIComponent(employeeName)}&phone=${encodeURIComponent(employeePhone)}&address=${encodeURIComponent(employeeAddress)}&salary=${encodeURIComponent(employeeSalary)}&joinDate=${encodeURIComponent(employeeJoinDate)}`;
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                
+                const data = await response.json();
+                
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add Employee';
+                
+                if (data.success) {
+                    messageDiv.textContent = 'Employee added successfully!';
+                    messageDiv.className = 'message success';
+                    
+                    // Clear form
+                    document.getElementById('employeeForm').reset();
+                    
+                    // Reload employee list
+                    setTimeout(() => {
+                        loadEmployees();
+                        messageDiv.style.display = 'none';
+                    }, 2000);
+                } else {
+                    messageDiv.textContent = data.message || 'Failed to add employee.';
+                    messageDiv.className = 'message error';
+                }
+                
+            } catch (error) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add Employee';
+                messageDiv.textContent = 'Error: ' + error.message;
+                messageDiv.className = 'message error';
+                console.error('Error:', error);
+            }
+        });
+
+        // Load all employees function
+        async function loadEmployees() {
+            const employeeListContainer = document.getElementById('employeeListContainer');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const employeeList = document.getElementById('employeeList');
+            const refreshBtn = document.getElementById('refreshEmployeesBtn');
+            
+            // Show loading message
+            loadingMessage.style.display = 'block';
+            employeeList.innerHTML = '';
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = 'Loading...';
+            }
+            
+            try {
+                // Fetch all employees from Google Apps Script
+                const url = `${SCRIPT_URL}?action=getAllEmployees`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                
+                const data = await response.json();
+                
+                // Hide loading message
+                loadingMessage.style.display = 'none';
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = 'Refresh List';
+                }
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    // Display employees in a table
+                    let tableHTML = `
+                        <table class="employee-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Address</th>
+                                    <th>Salary</th>
+                                    <th>Join Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.data.forEach((employee, index) => {
+                        tableHTML += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${employee.name}</td>
+                                <td>${employee.phone}</td>
+                                <td>${employee.address}</td>
+                                <td>${parseFloat(employee.salary).toLocaleString()}</td>
+                                <td>${employee.joinDate}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableHTML += `
+                            </tbody>
+                        </table>
+                        <p class="employee-count">Total Employees: ${data.data.length}</p>
+                    `;
+                    
+                    employeeList.innerHTML = tableHTML;
+                } else {
+                    employeeList.innerHTML = '<p class="no-employees">No employees found.</p>';
+                }
+                
+            } catch (error) {
+                loadingMessage.style.display = 'none';
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = 'Refresh List';
+                }
+                employeeList.innerHTML = `<p class="error-message">Error loading employees: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        }
+
+        // Refresh employees button
+        document.getElementById('refreshEmployeesBtn').addEventListener('click', loadEmployees);
+    </script>
+</body>
+</html>
