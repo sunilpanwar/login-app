@@ -17,8 +17,22 @@
                 <h2>Dashboard</h2>
                 <p>You have successfully logged in to the application.</p>
                 
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <a href="register.html" class="action-card">
+                        <div class="action-icon">👤</div>
+                        <h3>Register New User</h3>
+                        <p>Add a new user to the system</p>
+                    </a>
+                    <div class="action-card" id="viewUsersCard">
+                        <div class="action-icon">📋</div>
+                        <h3>View All Users</h3>
+                        <p>See list of registered users</p>
+                    </div>
+                </div>
+                
                 <!-- User Management Section -->
-                <div class="user-management">
+                <div class="user-management" id="userManagementSection" style="display: none;">
                     <div class="section-header">
                         <h3>User Management</h3>
                         <button id="loadUsersBtn" class="btn-primary">Load All Users</button>
@@ -47,7 +61,7 @@
 
     <script>
         // Replace this URL with your Google Apps Script Web App URL
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwvcxljD8mM_mtiHzAG-iZtUapbGQiOVHrun1jeV-WwrGv8B5mq0Neap8X52DXpKx8o/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO6wqGHUYUpKLbGnr7mcP1nHNR8YZVd3kjMtv2zPWWAFTgCDrJNFRpkUHXWwdJH6mg/exec';
 
         // Check if user is logged in
         window.addEventListener('DOMContentLoaded', function() {
@@ -72,6 +86,14 @@
             
             // Redirect to login page
             window.location.href = 'index.html';
+        });
+
+        // View users card click
+        document.getElementById('viewUsersCard').addEventListener('click', function() {
+            document.getElementById('userManagementSection').style.display = 'block';
+            document.getElementById('loadUsersBtn').click();
+            // Scroll to user management section
+            document.getElementById('userManagementSection').scrollIntoView({ behavior: 'smooth' });
         });
 
         // Load all users functionality

@@ -24,6 +24,12 @@ function doGet(e) {
       return getAllUsers();
     }
     
+    if (action === 'addUser') {
+      const username = e.parameter.username;
+      const password = e.parameter.password;
+      return addUserViaAPI(username, password);
+    }
+    
     // Default: Login validation
     const username = e.parameter.username;
     const password = e.parameter.password;
@@ -218,9 +224,60 @@ function createResponseWithData(success, message, data) {
 }
 
 /**
- * Function to add a new user (optional - for future enhancement)
+ * API endpoint to add a new user
  * @param {string} username - The username to add
  * @param {string} password - The password to add
+ * @return {ContentService.TextOutput} - JSON response
+ */
+function addUserViaAPI(username, password) {
+  try {
+    // Validate input
+    if (!username || !password) {
+      return createResponse(false, 'Username and password are required');
+    }
+    
+    // Validate username length
+    if (username.trim().length < 3) {
+      return createResponse(false, 'Username must be at least 3 characters long');
+    }
+    
+    // Validate password length
+    if (password.length < 6) {
+      return createResponse(false, 'Password must be at least 6 characters long');
+    }
+    
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
+    
+    if (!sheet) {
+      Logger.log('Sheet "Users" not found');
+      return createResponse(false, 'Users sheet not found');
+    }
+    
+    // Check if user already exists
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] && data[i][0].toString().toLowerCase() === username.toLowerCase()) {
+        Logger.log('User already exists: ' + username);
+        return createResponse(false, 'Username already exists. Please choose a different username.');
+      }
+    }
+    
+    // Add new user
+    sheet.appendRow([username.trim(), password]);
+    Logger.log('User added successfully: ' + username);
+    return createResponse(true, 'User registered successfully!');
+    
+  } catch (error) {
+    Logger.log('Error in addUserViaAPI: ' + error.toString());
+    return createResponse(false, 'Error registering user: ' + error.toString());
+  }
+}
+
+/**
+ * Function to add a new user (for internal use)
+ * @param {string} username - The username to add
+ * @param {string} password - The password to add
+ * @return {boolean} - True if successful, false otherwise
  */
 function addUser(username, password) {
   try {
@@ -234,7 +291,7 @@ function addUser(username, password) {
     // Check if user already exists
     const data = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
-      if (data[i][0].toString().toLowerCase() === username.toLowerCase()) {
+      if (data[i][0] && data[i][0].toString().toLowerCase() === username.toLowerCase()) {
         Logger.log('User already exists: ' + username);
         return false;
       }
