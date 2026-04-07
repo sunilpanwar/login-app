@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Page</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
 </head>
 <body>
     <div class="container">
@@ -26,10 +27,12 @@
     </div>
 
     <script>
-        // Replace this URL with your Google Apps Script Web App URL
-        // Make sure to deploy as "Execute as: Me" and "Who has access: Anyone"
-
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO6wqGHUYUpKLbGnr7mcP1nHNR8YZVd3kjMtv2zPWWAFTgCDrJNFRpkUHXWwdJH6mg/exec';
+        // Verify CONFIG is loaded and get SCRIPT_URL
+        if (typeof CONFIG === 'undefined' || !CONFIG.SCRIPT_URL) {
+            alert('Configuration error: Please ensure config.js is properly loaded and SCRIPT_URL is set.');
+            throw new Error('CONFIG not loaded');
+        }
+        const SCRIPT_URL = CONFIG.SCRIPT_URL;
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
